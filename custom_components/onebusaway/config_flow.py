@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_URL, CONF_ID, CONF_NAME, CONF_TOKEN
+from homeassistant.const import CONF_URL, CONF_ID, CONF_TOKEN
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
@@ -29,9 +29,10 @@ class OneBusAwayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         _errors = {}
         if user_input is not None:
             try:
-                await self._test_url(
+                arrival = await self._test_url(
                     url=user_input[CONF_URL],
                     key=user_input[CONF_TOKEN],
+                    stop=user_input[CONF_ID],
                 )
             except OneBusAwayApiClientAuthenticationError as exception:
                 LOGGER.warning(exception)
@@ -44,7 +45,8 @@ class OneBusAwayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 _errors["base"] = "unknown"
             else:
                 return self.async_create_entry(
-                    title=user_input[CONF_NAME],
+                    title=arrival["routeShortName"],
+                    description=arrival["routeLongName"],
                     data=user_input,
                 )
 
@@ -52,14 +54,6 @@ class OneBusAwayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        CONF_NAME,
-                        default=(user_input or {}).get(CONF_NAME),
-                    ): selector.TextSelector(
-                        selector.TextSelectorConfig(
-                            type=selector.TextSelectorType.TEXT
-                        ),
-                    ),
                     vol.Required(
                         CONF_URL, default="https://api.pugetsound.onebusaway.org/api"
                     ): selector.TextSelector(
@@ -80,11 +74,13 @@ class OneBusAwayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=_errors,
         )
 
-    async def _test_url(self, url: str, key: str) -> None:
+    async def _test_url(self, url: str, key: str, stop: str):
         """Validate credentials."""
         client = OneBusAwayApiClient(
             url=url,
             key=key,
+            stop=stop,
             session=async_create_clientsession(self.hass),
         )
-        await client.async_get_data()
+        json = await client.async_get_data()
+        return json["data"]["entry"]["arrivalsAndDepartures"][0]

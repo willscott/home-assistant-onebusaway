@@ -27,26 +27,20 @@ class OneBusAwayApiClient:
         self,
         url: str,
         key: str,
+        stop: str,
         session: aiohttp.ClientSession,
     ) -> None:
         """Sample API Client."""
         self._url = url
         self._key = key
+        self._stop = stop
         self._session = session
 
     async def async_get_data(self) -> any:
         """Get data from the API."""
         return await self._api_wrapper(
-            method="get", url="https://jsonplaceholder.typicode.com/posts/1"
-        )
-
-    async def async_set_title(self, value: str) -> any:
-        """Get data from the API."""
-        return await self._api_wrapper(
-            method="patch",
-            url="https://jsonplaceholder.typicode.com/posts/1",
-            data={"title": value},
-            headers={"Content-type": "application/json; charset=UTF-8"},
+            method="get",
+            url=f"{self._url}/where/arrivals-and-departures-for-stop/{self._stop}.json?key={self._key}",
         )
 
     async def _api_wrapper(

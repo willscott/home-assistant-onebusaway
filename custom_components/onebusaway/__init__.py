@@ -29,6 +29,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         client=OneBusAwayApiClient(
             url=entry.data[CONF_URL],
             key=entry.data[CONF_TOKEN],
+            stop=entry.data[CONF_ID],
             session=async_get_clientsession(hass),
         ),
     )

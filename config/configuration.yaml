@@ -6,3 +6,8 @@ logger:
   default: info
   logs:
     custom_components.onebusaway: debug
+
+debugpy:
+  start: true
+  wait: false
+  port: 5678
