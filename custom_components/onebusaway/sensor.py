@@ -1,7 +1,11 @@
 """Sensor platform for onebusaway."""
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorEntityDescription,
+    SensorDeviceClass,
+)
 
 from .const import DOMAIN
 from .coordinator import OneBusAwayDataUpdateCoordinator
@@ -39,6 +43,8 @@ class OneBusAwaySensor(OneBusAwayEntity, SensorEntity):
         """Initialize the sensor class."""
         super().__init__(coordinator)
         self.entity_description = entity_description
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     @property
     def native_value(self) -> str:
