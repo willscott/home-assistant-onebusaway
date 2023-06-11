@@ -59,7 +59,9 @@ class OneBusAwayFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(type=selector.TextSelectorType.URL),
                     ),
-                    vol.Optional(CONF_TOKEN, default="TEST"): selector.TextSelector(
+                    vol.Optional(
+                        CONF_TOKEN, default="e1452dde-44fa-4bf9-821b-96ace8fbcbf6"
+                    ): selector.TextSelector(
                         selector.TextSelectorConfig(
                             type=selector.TextSelectorType.TEXT
                         ),
