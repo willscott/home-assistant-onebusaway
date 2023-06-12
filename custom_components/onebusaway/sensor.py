@@ -1,5 +1,7 @@
 """Sensor platform for onebusaway."""
 from __future__ import annotations
+from datetime import datetime, timezone
+from time import time
 
 from homeassistant.components.sensor import (
     SensorEntity,
@@ -49,4 +51,20 @@ class OneBusAwaySensor(OneBusAwayEntity, SensorEntity):
     @property
     def native_value(self) -> str:
         """Return the native value of the sensor."""
-        return self.coordinator.data.get("body")
+
+        # This is a unix timestamp value except in
+        # milliseconds because precision is super
+        # important when discussing train departure
+        # times
+
+        current = time() * 1000
+        # We want the soonest time that is after the current time
+        departures = [
+            d["scheduledDepartureTime"]
+            for d in self.coordinator.data.get("data")["entry"]["arrivalsAndDepartures"]
+            if d["scheduledDepartureTime"] > current
+        ]
+        departure = min(departures)
+
+        # convert unix timestamp to Python datetime
+        return datetime.fromtimestamp(departure / 1000, timezone.utc)
