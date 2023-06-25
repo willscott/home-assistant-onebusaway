@@ -3,18 +3,24 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from time import time
 
+from homeassistant.helpers.entity import DeviceInfo
+
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
     SensorDeviceClass,
 )
-from homeassistant.const import CONF_URL, CONF_ID, CONF_TOKEN
+from homeassistant.const import (
+    CONF_URL,
+    CONF_ID,
+    CONF_TOKEN,
+)
+from .const import ATTRIBUTION, DOMAIN, NAME, VERSION
+
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 
 from .api import OneBusAwayApiClient
-
-from .entity import OneBusAwayEntity
 
 ENTITY_DESCRIPTIONS = (
     SensorEntityDescription(
@@ -37,23 +43,33 @@ async def async_setup_entry(hass, entry, async_add_devices):
         OneBusAwaySensor(
             client=client,
             entity_description=entity_description,
+            stop=entry.data[CONF_ID],
         )
         for entity_description in ENTITY_DESCRIPTIONS
     )
 
 
-class OneBusAwaySensor(OneBusAwayEntity, SensorEntity):
+class OneBusAwaySensor(SensorEntity):
     """onebusaway Sensor class."""
 
     def __init__(
         self,
         client: OneBusAwayApiClient,
         entity_description: SensorEntityDescription,
+        stop: str,
     ) -> None:
         """Initialize the sensor class."""
         super().__init__()
         self.entity_description = entity_description
         self.client = client
+        self._attr_attribution = ATTRIBUTION
+        self._attr_unique_id = stop
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, stop)},
+            name=NAME,
+            model=VERSION,
+            manufacturer=NAME,
+        )
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
