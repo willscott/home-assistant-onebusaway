@@ -15,10 +15,10 @@ from homeassistant.const import (
     CONF_ID,
     CONF_TOKEN,
 )
-from .const import ATTRIBUTION, DOMAIN, NAME, VERSION
-
+from homeassistant.helpers.event import async_track_point_in_time
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
+from .const import ATTRIBUTION, DOMAIN, NAME, VERSION
 
 from .api import OneBusAwayApiClient
 
@@ -74,18 +74,17 @@ class OneBusAwaySensor(SensorEntity):
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     data = None
+    unsub = None
+    next_arrival = None
 
-    @property
-    def native_value(self) -> str:
-        """Return the native value of the sensor."""
+    def compute_next(self) -> datetime:
+        """Compute the next arrival time from the last read data"""
         if self.data is None:
             return None
-
         # This is a unix timestamp value except in
         # milliseconds because precision is super
         # important when discussing train departure
         # times
-
         current = time() * 1000
         # We want the soonest time that is after the current time
         departures = [
@@ -93,11 +92,33 @@ class OneBusAwaySensor(SensorEntity):
             for d in self.data.get("data")["entry"]["arrivalsAndDepartures"]
             if d["scheduledDepartureTime"] > current
         ]
-        departure = min(departures)
+        departure = min(departures) / 1000
+        return datetime.fromtimestamp(departure, timezone.utc)
 
-        # convert unix timestamp to Python datetime
-        return datetime.fromtimestamp(departure / 1000, timezone.utc)
+    def refresh(self, timestamp) -> None:
+        """Invalidate the current sensor state"""
+        print(f"Refreshing sensor state at {timestamp}!")
+        self.schedule_update_ha_state(True)
+
+    @property
+    def native_value(self) -> str:
+        """Return the native value of the sensor."""
+        return self.next_arrival
 
     async def async_update(self):
         """Retrieve latest state."""
         self.data = await self.client.async_get_data()
+
+        soonest = self.compute_next()
+        if soonest != self.next_arrival:
+            self.next_arrival = soonest
+            if self.unsub is not None:
+                self.unsub()
+
+            #
+            # set a timer to go off at the next arrival time so we can
+            # invalidate the state
+            #
+            self.unsub = async_track_point_in_time(
+                self.hass, self.refresh, self.next_arrival
+            )
