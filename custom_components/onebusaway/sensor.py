@@ -78,7 +78,7 @@ class OneBusAwaySensor(SensorEntity):
     next_arrival = None
 
     def compute_next(self) -> datetime:
-        """Compute the next arrival time from the last read data"""
+        """Compute the next arrival time from the last read data."""
         if self.data is None:
             return None
         # This is a unix timestamp value except in
@@ -95,9 +95,8 @@ class OneBusAwaySensor(SensorEntity):
         departure = min(departures) / 1000
         return datetime.fromtimestamp(departure, timezone.utc)
 
-    def refresh(self, timestamp) -> None:
-        """Invalidate the current sensor state"""
-        print(f"Refreshing sensor state at {timestamp}!")
+    def refresh(self, _timestamp) -> None:
+        """Invalidate the current sensor state."""
         self.schedule_update_ha_state(True)
 
     @property
