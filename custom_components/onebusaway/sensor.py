@@ -76,8 +76,9 @@ class OneBusAwaySensor(SensorEntity):
     data = None
     unsub = None
     next_arrival = None
+    sub_arrival = None
 
-    def compute_next(self) -> datetime:
+    def compute_next(self, after) -> datetime:
         """Compute the next arrival time from the last read data."""
         if self.data is None:
             return None
@@ -85,12 +86,17 @@ class OneBusAwaySensor(SensorEntity):
         # milliseconds because precision is super
         # important when discussing train departure
         # times
-        current = time() * 1000
+        current = after * 1000
         # We want the soonest time that is after the current time
+        def timeOf(d) -> int:
+            if d["predictedArrivalTime"] is not None:
+                return d["predictedArrivalTime"]
+            return d["scheduledDepartureTime"]
+
         departures = [
-            d["scheduledDepartureTime"]
+            timeOf(d)
             for d in self.data.get("data")["entry"]["arrivalsAndDepartures"]
-            if d["scheduledDepartureTime"] > current
+            if timeOf(d) > current
         ]
         departure = min(departures) / 1000
         return datetime.fromtimestamp(departure, timezone.utc)
@@ -103,14 +109,21 @@ class OneBusAwaySensor(SensorEntity):
     def native_value(self) -> str:
         """Return the native value of the sensor."""
         return self.next_arrival
+    
+    @property
+    def extra_state_attributes(self):
+        attrs = {"SUBSEQUENT": self.sub_arrival}
+        attrs.update(super().extra_state_attributes)
+        return attrs
 
     async def async_update(self):
         """Retrieve latest state."""
         self.data = await self.client.async_get_data()
 
-        soonest = self.compute_next()
+        soonest = self.compute_next(time())
         if soonest != self.next_arrival:
             self.next_arrival = soonest
+            self.sub_arrival = self.compute_next(soonest)
             if self.unsub is not None:
                 self.unsub()
 
