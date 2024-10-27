@@ -112,8 +112,7 @@ class OneBusAwaySensor(SensorEntity):
     
     @property
     def extra_state_attributes(self):
-        attrs = {"SUBSEQUENT": self.sub_arrival}
-        attrs.update(super().extra_state_attributes)
+        attrs = {"Subsequent": self.sub_arrival}
         return attrs
 
     async def async_update(self):
