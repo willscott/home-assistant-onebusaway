@@ -122,7 +122,7 @@ class OneBusAwaySensor(SensorEntity):
         soonest = self.compute_next(time())
         if soonest != self.next_arrival:
             self.next_arrival = soonest
-            self.sub_arrival = self.compute_next(soonest)
+            self.sub_arrival = self.compute_next(soonest.timestamp())
             if self.unsub is not None:
                 self.unsub()
 
